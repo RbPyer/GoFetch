@@ -18,6 +18,16 @@ type CPU struct {
 	Siblings int
 }
 
+type MemoryInfo struct {
+	Total uint64
+	Free uint64
+	Buffers uint64
+	Cache uint64
+	Shared uint64
+	SReclaimable uint64	
+}
+
+
 func NewResponse() *Response {
 	return &Response{}
 }

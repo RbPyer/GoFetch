@@ -18,6 +18,7 @@ type Parser struct {
 	sysinfo syscall.Sysinfo_t
 }
 
+
 func NewParser(sysinfo *syscall.Sysinfo_t) *Parser {
 	syscall.Sysinfo(sysinfo)
 	return &Parser{
@@ -81,17 +82,28 @@ func (p *Parser) GetUptime(r *entities.Response) error {
 	return nil
 }
 
-// func (p *Parser) GetRAMInfo(r *entities.Response) {
-// 	freeRam := p.sysinfo.Freeram / 1024 / 1024
-// 	allRam := p.sysinfo.Totalram / 1024 / 1024
-// 	bufRam := p.sysinfo.Bufferram / 1024 / 1024
+func (p *Parser) GetRAMInfo(r *entities.Response) error {
+	file, err := os.Open(entities.CPU_PATH)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	
+	return nil
+	
+	// fileScanner := bufio.NewScanner(file)
+	// m := entities.MemoryInfo{}
 
-// 	fmt.Println(freeRam, allRam, bufRam)
+	// for ;m.SReclaimable == 0;fileScanner.Scan() {
+	// 	str := fileScanner.Text()
+	// }
 
 
-// 	// fmt.Printf("%d/%d", allRam - bufRam - freeRam - shrRam, allRam)
 
-// }
+
+	// fmt.Printf("%d/%d", allRam - bufRam - freeRam - shrRam, allRam)
+
+}
 
 
 func (p *Parser) GetCPUInfo(r *entities.Response) error {
