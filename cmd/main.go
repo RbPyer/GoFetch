@@ -29,6 +29,10 @@ func main() {
 	if err := p.GetCPUInfo(response); err != nil {
 		log.Fatalf("Some errors with getting cpu info: %s", err.Error())
 	}
+	if err := p.GetRAMInfo(response); err != nil {
+		log.Fatalf("Some errors with getting ram info: %s", err.Error())
+	}
+	
 
 	fmt.Println(strings.Join(response.Info, entities.Delimeter))
 

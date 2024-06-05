@@ -7,10 +7,23 @@ const (
 	RAM_PATH="/proc/meminfo"
 )
 
+// var (
+// 	TotalMemErr = errors.New("")
+// )
+
 type Response struct {
 	Info []string
 }
 
+type RAM struct {
+	TrueFree uint64
+	Total uint64
+	Free uint64
+	Shared uint64
+	SReclaimable uint64
+	Buffers uint64
+	Cached uint64
+}
 
 type CPU struct {
 	ModelName string

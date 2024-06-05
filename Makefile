@@ -1,2 +1,2 @@
 all:
-	go run cmd/main.go
+	go build -o GoFetch cmd/main.go
