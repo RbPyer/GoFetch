@@ -43,11 +43,10 @@ func (p *Parser) GetUserInfo(r *entities.Response) error {
 
 func (p *Parser) GetOsVersion(r *entities.Response) error {
 	file, err := os.Open("/etc/os-release")
-	defer file.Close()
-
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	
 	fileScanner := bufio.NewScanner(file)
 
@@ -81,39 +80,60 @@ func (p *Parser) GetUptime(r *entities.Response) error {
 	return nil
 }
 
-// func (p *Parser) GetRAMInfo(r *entities.Response) {
-// 	freeRam := p.sysinfo.Freeram / 1024 / 1024
-// 	allRam := p.sysinfo.Totalram / 1024 / 1024
-// 	bufRam := p.sysinfo.Bufferram / 1024 / 1024
+func (p *Parser) GetRAMInfo(r *entities.Response) error {
+	file, err := os.Open(entities.RAM_PATH)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	
+	fileScanner := bufio.NewScanner(file)
+	mem := entities.RAM{}
+	
+	for ;mem.SReclaimable == 0;fileScanner.Scan() {
+		str := fileScanner.Text()
+		switch {
+		case strings.HasPrefix(str, "MemTotal"):
+			if mem.Total, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {return err}
+		case strings.HasPrefix(str, "MemFree"):
+			if mem.Free, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {return err}
+		case strings.HasPrefix(str, "Buffers"):
+			if mem.Buffers, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {return err}
+		case strings.HasPrefix(str, "Cached"):
+			if mem.Cached, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {return err}
+		case strings.HasPrefix(str, "Shmem"):
+			if mem.Shared, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {return err}
+		case strings.HasPrefix(str, "SReclaimable"):
+			if mem.SReclaimable, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {return err}
+		}
+	}
+	r.Info = append(r.Info, fmt.Sprintf("RAM: %-65s|", fmt.Sprintf("%d/%d MiB", (mem.Total + mem.Shared - mem.Buffers - mem.Cached - mem.SReclaimable) / 1024, 
+			mem.Total / 1024)))
 
-// 	fmt.Println(freeRam, allRam, bufRam)
-
-
-// 	// fmt.Printf("%d/%d", allRam - bufRam - freeRam - shrRam, allRam)
-
-// }
+	return nil
+}
 
 
 func (p *Parser) GetCPUInfo(r *entities.Response) error {
 	file, err := os.Open(entities.CPU_PATH)
-	defer file.Close()
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	
 	fileScanner := bufio.NewScanner(file)
 	cpu := entities.CPU{}
 
 	for ;cpu.Cores == 0;fileScanner.Scan() {
 		str := fileScanner.Text()
-		if strings.Contains(str, "model name") {
+		if strings.HasPrefix(str, "model name") {
 			cpu.ModelName = strings.Replace(str, "model name\t: ", "", 1)
-		} else if strings.Contains(str, "siblings") {
+		} else if strings.HasPrefix(str, "siblings") {
 			cpu.Siblings, err = strconv.Atoi(strings.Replace(str, "siblings\t: ", "", 1))
 			if err != nil {
 				return err
 			}
-		} else if strings.Contains(str, "cpu cores") {
+		} else if strings.HasPrefix(str, "cpu cores") {
 			cpu.Cores, err = strconv.Atoi(strings.Replace(str, "cpu cores\t: ", "", 1))
 			if err != nil {
 				return err
