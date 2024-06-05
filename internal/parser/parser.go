@@ -128,18 +128,13 @@ func (p *Parser) GetCPUInfo(r *entities.Response) error {
 
 	for ;cpu.Cores == 0;fileScanner.Scan() {
 		str := fileScanner.Text()
-		if strings.HasPrefix(str, "model name") {
+		switch {
+		case strings.HasPrefix(str, "model name"):
 			cpu.ModelName = strings.Replace(str, "model name\t: ", "", 1)
-		} else if strings.HasPrefix(str, "siblings") {
-			cpu.Siblings, err = strconv.Atoi(strings.Replace(str, "siblings\t: ", "", 1))
-			if err != nil {
-				return err
-			}
-		} else if strings.HasPrefix(str, "cpu cores") {
-			cpu.Cores, err = strconv.Atoi(strings.Replace(str, "cpu cores\t: ", "", 1))
-			if err != nil {
-				return err
-			}
+		case strings.HasPrefix(str, "siblings"):
+			if cpu.Siblings, err = strconv.Atoi(strings.Replace(str, "siblings\t: ", "", 1)); err != nil {return err}
+		case strings.HasPrefix(str, "cpu cores"):
+			if cpu.Cores, err = strconv.Atoi(strings.Replace(str, "cpu cores\t: ", "", 1)); err != nil {return err}
 		}
 	}
 
