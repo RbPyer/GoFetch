@@ -1,4 +1,4 @@
-REPO="git@github.com:RbPyer/GoFetch.git develop"
+REPO=git@github.com:RbPyer/GoFetch.git develop
 
 
 git add .
