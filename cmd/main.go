@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	p := parser.NewParser()
+	p := parser.Parser{}
 	response := entities.NewResponse()
 	if err := p.GetUserInfo(response); err != nil {
 		log.Fatalf("Some errors with getting user: %s", err.Error())
@@ -35,5 +35,4 @@ func main() {
 	
 
 	fmt.Println(strings.Join(response.Info, entities.Delimeter))
-
 }

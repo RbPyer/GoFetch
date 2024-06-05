@@ -17,11 +17,6 @@ import (
 type Parser struct {}
 
 
-func NewParser() *Parser {
-	return &Parser{}
-}
-
-
 func (p *Parser) GetUserInfo(r *entities.Response) error {
 	hostname, err := os.Hostname()
 	if err != nil {
