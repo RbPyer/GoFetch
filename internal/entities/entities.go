@@ -5,6 +5,10 @@ const (
 	Prefix="PRETTY_NAME="
 	CPU_PATH="/proc/cpuinfo"
 	RAM_PATH="/proc/meminfo"
+	B  = 1
+	KB = 1024 * B
+	MB = 1024 * KB
+	GB = 1024 * MB
 )
 
 // var (
@@ -24,6 +28,12 @@ type RAM struct {
 	Buffers uint64
 	Cached uint64
 }
+
+type DiskInfo struct {
+	All uint64
+	Used uint64
+}
+
 
 type CPU struct {
 	ModelName string

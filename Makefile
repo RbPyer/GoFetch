@@ -7,3 +7,5 @@ PUSH=git push $(REPO)
 all:
 	go build -o $(EXEC_PATH)/GoFetch $(OBJ_PATH)
 
+run: all
+	$(EXEC_PATH)/GoFetch

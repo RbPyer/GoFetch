@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"syscall"
-
 	"github.com/RbPyer/Gofetch/internal/entities"
 	"github.com/RbPyer/Gofetch/internal/parser"
 )
 
 func main() {
-	sysinfo := syscall.Sysinfo_t{}
-	p := parser.NewParser(&sysinfo)
+	p := parser.NewParser()
 	response := entities.NewResponse()
 	if err := p.GetUserInfo(response); err != nil {
 		log.Fatalf("Some errors with getting user: %s", err.Error())
@@ -31,6 +28,9 @@ func main() {
 	}
 	if err := p.GetRAMInfo(response); err != nil {
 		log.Fatalf("Some errors with getting ram info: %s", err.Error())
+	}
+	if err := p.GetDiskInfo(response); err != nil {
+		log.Fatalf("Some errors with getting disk info: %s", err.Error())
 	}
 	
 

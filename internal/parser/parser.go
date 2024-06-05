@@ -14,16 +14,11 @@ import (
 )
 
 
-type Parser struct {
-	sysinfo syscall.Sysinfo_t
-}
+type Parser struct {}
 
 
-func NewParser(sysinfo *syscall.Sysinfo_t) *Parser {
-	syscall.Sysinfo(sysinfo)
-	return &Parser{
-		sysinfo: *sysinfo,
-	}
+func NewParser() *Parser {
+	return &Parser{}
 }
 
 
@@ -77,7 +72,9 @@ func (p *Parser) GetKernelVersion(r *entities.Response) error {
 
 
 func (p *Parser) GetUptime(r *entities.Response) error {
-	r.Info = append(r.Info, fmt.Sprintf("Uptime: %-62s|", utils.Int64ToTimeStr(p.sysinfo.Uptime)))
+	s := syscall.Sysinfo_t{}
+	syscall.Sysinfo(&s)
+	r.Info = append(r.Info, fmt.Sprintf("Uptime: %-62s|", utils.Int64ToTimeStr(s.Uptime)))
 	return nil
 }
 
@@ -139,6 +136,21 @@ func (p *Parser) GetCPUInfo(r *entities.Response) error {
 	}
 
 	r.Info = append(r.Info, fmt.Sprintf("CPU: %-65s|", fmt.Sprintf("%s; %d cores / %d threads", cpu.ModelName, cpu.Cores, cpu.Siblings)))
+
+	return nil
+}
+
+
+func (p *Parser) GetDiskInfo(r *entities.Response) error {
+	fs := syscall.Statfs_t{}
+	if err := syscall.Statfs("/", &fs); err != nil {
+		return err
+	}
+	diskInfo := entities.DiskInfo{
+		All: fs.Blocks * uint64(fs.Bsize),
+	}
+	diskInfo.Used = diskInfo.All - fs.Bfree * uint64(fs.Bsize)
+	r.Info = append(r.Info, fmt.Sprintf("Disk Info: %-59s|", fmt.Sprintf("%.2f/%.2f GiB", float64(diskInfo.Used) / entities.GB, float64(diskInfo.All) / entities.GB)))
 
 	return nil
 }
