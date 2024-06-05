@@ -1,4 +1,4 @@
-URL=git@github.com:RbPyer/GoFetch.git develop
+URL="git@github.com:RbPyer/GoFetch.git develop"
 
 
 git add .
