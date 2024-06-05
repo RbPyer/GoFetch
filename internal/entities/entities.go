@@ -7,6 +7,10 @@ const (
 	RAM_PATH="/proc/meminfo"
 )
 
+// var (
+// 	TotalMemErr = errors.New("")
+// )
+
 type Response struct {
 	Info []string
 }
