@@ -16,6 +16,7 @@ type Response struct {
 }
 
 type RAM struct {
+	TrueFree uint64
 	Total uint64
 	Free uint64
 	Shared uint64

@@ -105,10 +105,11 @@ func (p *Parser) GetRAMInfo(r *entities.Response) error {
 			if mem.Shared, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {return err}
 		case strings.HasPrefix(str, "SReclaimable"):
 			if mem.SReclaimable, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {return err}
+			mem.TrueFree = mem.Total + mem.Shared - mem.Buffers - mem.Cached - mem.Free - mem.SReclaimable
 		}
 	}
-	r.Info = append(r.Info, fmt.Sprintf("RAM: %-65s|", fmt.Sprintf("%d/%d MiB", (mem.Total + mem.Shared - mem.Buffers - mem.Cached - mem.Free - mem.SReclaimable) / 1024, 
-			mem.Total / 1024)))
+	r.Info = append(r.Info, fmt.Sprintf("RAM: %-65s|", fmt.Sprintf("%d/%d MiB [%.2f%%]", (mem.Total + mem.Shared - mem.Buffers - mem.Cached - mem.Free - mem.SReclaimable) / 1024, 
+			mem.Total / 1024, float64(mem.TrueFree) / float64(mem.Total) * 100)))
 
 	return nil
 }
