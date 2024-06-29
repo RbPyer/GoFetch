@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"strings"
 	"github.com/RbPyer/Gofetch/internal/entities"
 	"github.com/RbPyer/Gofetch/internal/parser"
+	"log"
+	"strings"
 )
 
 func main() {
@@ -32,7 +32,6 @@ func main() {
 	if err := p.GetDiskInfo(response); err != nil {
 		log.Fatalf("Some errors with getting disk info: %s", err.Error())
 	}
-	
 
-	fmt.Println(strings.Join(response.Info, entities.Delimeter))
+	fmt.Println("\033[32m", strings.Join(response.Info, entities.Delimeter))
 }
