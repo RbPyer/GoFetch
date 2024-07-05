@@ -308,3 +308,8 @@ func GetGPUModel(pciId string) (string, error) {
 	err = errors.New("no GPU model")
 	return "", err
 }
+
+func (p *Parser) GetShell(r *entities.Response) {
+	data := strings.Split(os.Getenv("SHELL"), "/")
+	r.Info = append(r.Info, fmt.Sprintf("Shell: %s", data[len(data)-1]))
+}
