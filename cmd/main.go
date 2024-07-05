@@ -32,6 +32,10 @@ func main() {
 	if err := p.GetDiskInfo(response); err != nil {
 		log.Fatalf("Some errors with getting disk info: %s", err.Error())
 	}
+	if err := p.GetGPUInfo(response); err != nil {
+		log.Fatalf("Some errors with getting disk info: %s", err.Error())
+	}
 
 	fmt.Println("\033[32m", strings.Join(response.Info, entities.Delimeter))
+
 }

@@ -167,13 +167,13 @@ func GetTemperatureInfo(cpu *entities.CPU) error {
 	if err != nil {
 		return err
 	}
+	var (
+		data []byte
+		temp uint64
+	)
 
 	for _, file := range files {
 		if strings.HasPrefix(file.Name(), "temp") && strings.HasSuffix(file.Name(), "input") {
-			var (
-				data []byte
-				temp uint64
-			)
 			data, err = os.ReadFile(filepath.Join(path, file.Name()))
 			if err != nil {
 				return err
@@ -220,4 +220,91 @@ func (p *Parser) GetDiskInfo(r *entities.Response) error {
 		float32(diskInfo.Used)/float32(diskInfo.All)*100)))
 
 	return nil
+}
+
+func (p *Parser) GetGPUInfo(r *entities.Response) error {
+	path := "/sys/bus/pci/devices"
+	if _, err := os.Stat(path); err != nil {
+		return err
+	}
+
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return err
+	}
+	var (
+		data      []byte
+		strBuffer string
+	)
+
+	for _, file := range files {
+		data, err = os.ReadFile(filepath.Join(path, file.Name(), "/class"))
+		if strings.HasPrefix(string(data), "0x03") {
+			strBuffer, err = GetPciId(filepath.Join(path, file.Name(), "/uevent"))
+			if err != nil {
+				return err
+			}
+			strBuffer, err = GetGPUModel(strBuffer)
+			if err != nil {
+				return err
+			}
+			r.Info = append(r.Info, fmt.Sprintf("GPU: %s", strBuffer))
+
+		}
+	}
+	return nil
+}
+
+func GetPciId(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	fileScanner := bufio.NewScanner(file)
+	for fileScanner.Scan() {
+		str := fileScanner.Text()
+		if strings.HasPrefix(str, "PCI_ID=") {
+			return strings.Replace(str, "PCI_ID=", "", 1), nil
+		}
+	}
+
+	err = errors.New("no PCI ID")
+	return "", err
+}
+
+func GetGPUModel(pciId string) (string, error) {
+	var numberId = fmt.Sprintf("\t%s", strings.Split(pciId, ":")[1])
+	pciId = fmt.Sprintf("\t\t%s", pciId)
+	file, err := os.Open("/usr/share/hwdata/pci.ids")
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	fileScanner := bufio.NewScanner(file)
+	for fileScanner.Scan() {
+		str := fileScanner.Text()
+		if strings.HasPrefix(str, numberId) {
+			rawResult := strings.Replace(str, numberId, "", 1)
+			if strings.Contains(rawResult, "[") && strings.Contains(rawResult, "]") {
+				indexStart := strings.Index(rawResult, "[")
+				indexEnd := strings.Index(rawResult, "]")
+				return rawResult[indexStart+1 : indexEnd], nil
+			}
+			return strings.TrimSpace(rawResult), nil
+		} else if strings.HasPrefix(str, pciId) {
+			rawResult := strings.Replace(str, pciId, "", 1)
+			if strings.Contains(rawResult, "[") && strings.Contains(rawResult, "]") {
+				indexStart := strings.Index(rawResult, "[")
+				indexEnd := strings.Index(rawResult, "]")
+				return rawResult[indexStart+1 : indexEnd], nil
+			}
+			return strings.TrimSpace(rawResult), nil
+		}
+	}
+
+	err = errors.New("no GPU model")
+	return "", err
 }

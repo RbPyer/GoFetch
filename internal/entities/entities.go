@@ -50,6 +50,10 @@ type MemoryInfo struct {
 	SReclaimable uint64
 }
 
+type GpuInfo struct {
+	Model string
+}
+
 func NewResponse() *Response {
 	return &Response{}
 }
