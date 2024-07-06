@@ -244,7 +244,7 @@ func (p *Parser) GetGPUInfo(r *entities.Response) error {
 			if err != nil {
 				return err
 			}
-			strBuffer, err = GetGPUModel(strBuffer)
+			strBuffer, err = GetGPUModel(strings.ToLower(strBuffer))
 			if err != nil {
 				return err
 			}
