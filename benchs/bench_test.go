@@ -1,14 +1,15 @@
 package main
 
 import (
+    "testing"
 	"log"
 	"github.com/RbPyer/Gofetch/internal/models"
 	p "github.com/RbPyer/Gofetch/internal/parsers"
 	"github.com/RbPyer/Gofetch/internal/presentator"
 )
 
-func main() {
-	response := &models.Response{}
+func fetch() {
+    response := &models.Response{}
 	if err := p.GetUserInfo(response); err != nil {
 		log.Fatalf("Some errors with getting user: %s", err.Error())
 	}
@@ -36,4 +37,10 @@ func main() {
 	p.GetShell(response)
 
 	presentator.Present(response)
+}
+
+func BenchmarkNeofetch(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        fetch()
+    }
 }

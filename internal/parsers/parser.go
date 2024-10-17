@@ -1,4 +1,4 @@
-package parser
+package parsers
 
 import (
 	"bufio"
@@ -10,14 +10,11 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-
-	"github.com/RbPyer/Gofetch/internal/entities"
+	"github.com/RbPyer/Gofetch/internal/models"
 	"github.com/RbPyer/Gofetch/internal/utils"
 )
 
-type Parser struct{}
-
-func (p *Parser) GetUserInfo(r *entities.Response) error {
+func GetUserInfo(r *models.Response) error {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
@@ -27,11 +24,12 @@ func (p *Parser) GetUserInfo(r *entities.Response) error {
 		return err
 	}
 
-	r.Info = append(r.Info, fmt.Sprintf("%s@%s", userObject.Username, hostname))
+	r.Hostname, r.Username = hostname, userObject.Username
+
 	return nil
 }
 
-func (p *Parser) GetOsVersion(r *entities.Response) error {
+func GetOsVersion(r *models.Response) error {
 	file, err := os.Open("/etc/os-release")
 	if err != nil {
 		return err
@@ -42,46 +40,47 @@ func (p *Parser) GetOsVersion(r *entities.Response) error {
 
 	for fileScanner.Scan() {
 		str := fileScanner.Text()
-		if strings.HasPrefix(str, entities.Prefix) {
-			str = strings.ReplaceAll(strings.ReplaceAll(str, entities.Prefix, ""), "\"", "")
-			r.Info = append(r.Info, fmt.Sprintf("OS: %-66s|", str))
+		if strings.HasPrefix(str, models.Prefix) {
+			str = strings.ReplaceAll(strings.ReplaceAll(str, models.Prefix, ""), "\"", "")
+			r.OSRelease = str
 			return nil
 		}
 	}
-
-	r.Info = append(r.Info, fmt.Sprintf("OS: %-66s|", "OS: no information about your os"))
 	return nil
 }
 
-func (p *Parser) GetKernelVersion(r *entities.Response) error {
+func GetKernelVersion(r *models.Response) error {
 	u := syscall.Utsname{}
 	err := syscall.Uname(&u)
 	if err != nil {
 		return err
 	}
-	r.Info = append(r.Info, fmt.Sprintf("Kernel: %-127s|", utils.UtsnameToStr(u.Release)))
+	r.KernelVersion = utils.UtsnameToStr(u.Release)
+
 	return nil
 }
 
-func (p *Parser) GetUptime(r *entities.Response) error {
+func GetUptime(r *models.Response) error {
 	s := syscall.Sysinfo_t{}
 	err := syscall.Sysinfo(&s)
 	if err != nil {
 		return err
 	}
-	r.Info = append(r.Info, fmt.Sprintf("Uptime: %-62s|", utils.Int64ToTimeStr(s.Uptime)))
+
+	r.Uptime = utils.Int64ToTimeStr(s.Uptime)
+
 	return nil
 }
 
-func (p *Parser) GetRAMInfo(r *entities.Response) error {
-	file, err := os.Open(entities.RamPath)
+func GetRAMInfo(r *models.Response) error {
+	file, err := os.Open(models.RamPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
 	fileScanner := bufio.NewScanner(file)
-	mem := entities.RAM{}
+	mem := models.RAM{}
 
 	for ; mem.SReclaimable == 0; fileScanner.Scan() {
 		str := fileScanner.Text()
@@ -113,22 +112,21 @@ func (p *Parser) GetRAMInfo(r *entities.Response) error {
 			mem.TrueFree = mem.Total + mem.Shared - mem.Buffers - mem.Cached - mem.Free - mem.SReclaimable
 		}
 	}
-	r.Info = append(r.Info, fmt.Sprintf("RAM: %-65s|", fmt.Sprintf("%d/%d MiB [%.2f%%]", (mem.Total+mem.Shared-mem.Buffers-mem.Cached-mem.Free-mem.SReclaimable)/1024,
-		mem.Total/1024, float64(mem.TrueFree)/float64(mem.Total)*100)))
 
+	r.RAM = mem
 	return nil
 }
 
-func (p *Parser) GetCPUInfo(r *entities.Response) error {
-	file, err := os.Open(entities.CpuPath)
+func GetCPUInfo(r *models.Response) error {
+	file, err := os.Open(models.CpuPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
 	fileScanner := bufio.NewScanner(file)
-	cpu := entities.CPU{}
-	if err = GetTemperatureInfo(&cpu); err != nil {
+	cpu := models.CPU{}
+	if err = getTemperatureInfo(&cpu); err != nil {
 		return err
 	}
 
@@ -148,18 +146,15 @@ func (p *Parser) GetCPUInfo(r *entities.Response) error {
 		}
 	}
 
-	r.Info = append(r.Info, fmt.Sprintf("CPU: %-65s|",
-		fmt.Sprintf("%s; %d cores / %d threads\n\nTemperature zones: %v", cpu.ModelName, cpu.Cores, cpu.Siblings,
-			cpu.Temperatures)))
-
+	r.CPU = cpu
 	return nil
 }
 
-func GetTemperatureInfo(cpu *entities.CPU) error {
+func getTemperatureInfo(cpu *models.CPU) error {
 	if _, err := os.Stat("/sys/class/hwmon"); err != nil {
 		return err
 	}
-	path, err := GetHardwareMon()
+	path, err := getHardwareMon()
 	if err != nil {
 		return err
 	}
@@ -189,7 +184,7 @@ func GetTemperatureInfo(cpu *entities.CPU) error {
 	return nil
 }
 
-func GetHardwareMon() (string, error) {
+func getHardwareMon() (string, error) {
 	files, err := os.ReadDir("/sys/class/hwmon")
 	if err != nil {
 		return "", err
@@ -207,28 +202,26 @@ func GetHardwareMon() (string, error) {
 	return "", err
 }
 
-func (p *Parser) GetDiskInfo(r *entities.Response) error {
+func GetDiskInfo(r *models.Response) error {
 	fs := syscall.Statfs_t{}
 	if err := syscall.Statfs("/", &fs); err != nil {
 		return err
 	}
-	diskInfo := entities.DiskInfo{
+	diskInfo := models.DiskInfo{
 		All: fs.Blocks * uint64(fs.Bsize),
 	}
 	diskInfo.Used = diskInfo.All - fs.Bfree*uint64(fs.Bsize)
-	r.Info = append(r.Info, fmt.Sprintf("Disk Info: %-59s|", fmt.Sprintf("%.2f/%.2f GiB [%.2f%%]", float64(diskInfo.Used)/entities.GB, float64(diskInfo.All)/entities.GB,
-		float32(diskInfo.Used)/float32(diskInfo.All)*100)))
+	r.DiskInfo = diskInfo
 
 	return nil
 }
 
-func (p *Parser) GetGPUInfo(r *entities.Response) error {
-	path := "/sys/bus/pci/devices"
-	if _, err := os.Stat(path); err != nil {
+func GetGPUInfo(r *models.Response) error {
+	if _, err := os.Stat(models.GpuPath); err != nil {
 		return err
 	}
 
-	files, err := os.ReadDir(path)
+	files, err := os.ReadDir(models.GpuPath)
 	if err != nil {
 		return err
 	}
@@ -238,24 +231,26 @@ func (p *Parser) GetGPUInfo(r *entities.Response) error {
 	)
 
 	for _, file := range files {
-		data, err = os.ReadFile(filepath.Join(path, file.Name(), "/class"))
+		data, err = os.ReadFile(filepath.Join(models.GpuPath, file.Name(), "/class"))
+		if err != nil {
+			return err
+		}
 		if strings.HasPrefix(string(data), "0x03") {
-			strBuffer, err = GetPciId(filepath.Join(path, file.Name(), "/uevent"))
+			strBuffer, err = getPciId(filepath.Join(models.GpuPath, file.Name(), "/uevent"))
 			if err != nil {
 				return err
 			}
-			strBuffer, err = GetGPUModel(strings.ToLower(strBuffer))
+			strBuffer, err = getGPUModel(strings.ToLower(strBuffer))
 			if err != nil {
 				return err
 			}
-			r.Info = append(r.Info, fmt.Sprintf("GPU: %s", strBuffer))
-
+			r.GPUModel = strBuffer
 		}
 	}
 	return nil
 }
 
-func GetPciId(path string) (string, error) {
+func getPciId(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return "", err
@@ -274,7 +269,7 @@ func GetPciId(path string) (string, error) {
 	return "", err
 }
 
-func GetGPUModel(pciId string) (string, error) {
+func getGPUModel(pciId string) (string, error) {
 	var numberId = fmt.Sprintf("\t%s", strings.Split(pciId, ":")[1])
 	pciId = fmt.Sprintf("\t\t%s", pciId)
 	file, err := os.Open("/usr/share/hwdata/pci.ids")
@@ -309,7 +304,7 @@ func GetGPUModel(pciId string) (string, error) {
 	return "", err
 }
 
-func (p *Parser) GetShell(r *entities.Response) {
+func GetShell(r *models.Response) {
 	data := strings.Split(os.Getenv("SHELL"), "/")
-	r.Info = append(r.Info, fmt.Sprintf("Shell: %s", data[len(data)-1]))
+	r.Shell = data[len(data)-1]
 }

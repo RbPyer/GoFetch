@@ -1,22 +1,28 @@
-package entities
+package models
 
 const (
-	Delimeter = "\n______________________________________________________________________\n"
+	Template = "\033[32m%s@%s\nOS: %s\nKernel: %s\nUptime: %s\nRAM: %d/%d MiB [%.2f%%]\n\nCPU Info: %s; %d cores / %d threads\nTemperature zones: %v\n\nDisk Info: %.2f/%.2f GiB [%.2f%%]\nGPU: %s\nShell: %s"
 	Prefix    = "PRETTY_NAME="
 	CpuPath   = "/proc/cpuinfo"
 	RamPath   = "/proc/meminfo"
+	GpuPath   = "/sys/bus/pci/devices"
 	B         = 1
 	KB        = 1024 * B
 	MB        = 1024 * KB
 	GB        = 1024 * MB
 )
 
-//var (
-//	NoTempInfo = errors.New("no information about CPU temperature")
-//)
-
 type Response struct {
-	Info []string
+	Hostname string
+	Username string
+	OSRelease string
+	KernelVersion string
+	Uptime string
+	GPUModel string
+	Shell string
+	RAM
+	DiskInfo
+	CPU
 }
 
 type RAM struct {
@@ -41,19 +47,6 @@ type CPU struct {
 	Temperatures []uint64
 }
 
-type MemoryInfo struct {
-	Total        uint64
-	Free         uint64
-	Buffers      uint64
-	Cache        uint64
-	Shared       uint64
-	SReclaimable uint64
-}
-
 type GpuInfo struct {
 	Model string
-}
-
-func NewResponse() *Response {
-	return &Response{}
 }
