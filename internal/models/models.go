@@ -12,6 +12,10 @@ const (
 	GB        = 1024 * MB
 )
 
+func New() Response {
+	return Response{CPU: CPU{Temperatures: make([]uint64, 0, 5)}}
+}
+
 type Response struct {
 	Hostname string
 	Username string
@@ -45,8 +49,4 @@ type CPU struct {
 	Cores        int
 	Siblings     int
 	Temperatures []uint64
-}
-
-type GpuInfo struct {
-	Model string
 }

@@ -80,40 +80,37 @@ func GetRAMInfo(r *models.Response) error {
 	defer file.Close()
 
 	fileScanner := bufio.NewScanner(file)
-	mem := models.RAM{}
 
-	for ; mem.SReclaimable == 0; fileScanner.Scan() {
+	for ; r.SReclaimable == 0; fileScanner.Scan() {
 		str := fileScanner.Text()
 		switch {
 		case strings.HasPrefix(str, "MemTotal"):
-			if mem.Total, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
+			if r.Total, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
 				return err
 			}
 		case strings.HasPrefix(str, "MemFree"):
-			if mem.Free, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
+			if r.Free, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
 				return err
 			}
 		case strings.HasPrefix(str, "Buffers"):
-			if mem.Buffers, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
+			if r.Buffers, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
 				return err
 			}
 		case strings.HasPrefix(str, "Cached"):
-			if mem.Cached, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
+			if r.Cached, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
 				return err
 			}
 		case strings.HasPrefix(str, "Shmem"):
-			if mem.Shared, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
+			if r.Shared, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
 				return err
 			}
 		case strings.HasPrefix(str, "SReclaimable"):
-			if mem.SReclaimable, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
+			if r.SReclaimable, err = strconv.ParseUint(strings.Fields(str)[1], 10, 64); err != nil {
 				return err
 			}
-			mem.TrueFree = mem.Total + mem.Shared - mem.Buffers - mem.Cached - mem.Free - mem.SReclaimable
+			r.TrueFree = r.Total + r.Shared - r.Buffers - r.Cached - r.Free - r.SReclaimable
 		}
 	}
-
-	r.RAM = mem
 	return nil
 }
 
@@ -125,28 +122,26 @@ func GetCPUInfo(r *models.Response) error {
 	defer file.Close()
 
 	fileScanner := bufio.NewScanner(file)
-	cpu := models.CPU{}
-	if err = getTemperatureInfo(&cpu); err != nil {
+
+	if err = getTemperatureInfo(&r.CPU); err != nil {
 		return err
 	}
 
-	for ; cpu.Cores == 0; fileScanner.Scan() {
+	for ; r.Cores == 0; fileScanner.Scan() {
 		str := fileScanner.Text()
 		switch {
 		case strings.HasPrefix(str, "model name"):
-			cpu.ModelName = strings.Replace(str, "model name\t: ", "", 1)
+			r.ModelName = strings.Replace(str, "model name\t: ", "", 1)
 		case strings.HasPrefix(str, "siblings"):
-			if cpu.Siblings, err = strconv.Atoi(strings.Replace(str, "siblings\t: ", "", 1)); err != nil {
+			if r.Siblings, _ = strconv.Atoi(strings.Replace(str, "siblings\t: ", "", 1)); err != nil {
 				return err
 			}
 		case strings.HasPrefix(str, "cpu cores"):
-			if cpu.Cores, err = strconv.Atoi(strings.Replace(str, "cpu cores\t: ", "", 1)); err != nil {
+			if r.Cores, err = strconv.Atoi(strings.Replace(str, "cpu cores\t: ", "", 1)); err != nil {
 				return err
 			}
 		}
 	}
-
-	r.CPU = cpu
 	return nil
 }
 
@@ -207,20 +202,13 @@ func GetDiskInfo(r *models.Response) error {
 	if err := syscall.Statfs("/", &fs); err != nil {
 		return err
 	}
-	diskInfo := models.DiskInfo{
-		All: fs.Blocks * uint64(fs.Bsize),
-	}
-	diskInfo.Used = diskInfo.All - fs.Bfree*uint64(fs.Bsize)
-	r.DiskInfo = diskInfo
 
+	r.All = fs.Blocks * uint64(fs.Bsize)
+	r.Used = r.All - fs.Bfree*uint64(fs.Bsize)
 	return nil
 }
 
 func GetGPUInfo(r *models.Response) error {
-	if _, err := os.Stat(models.GpuPath); err != nil {
-		return err
-	}
-
 	files, err := os.ReadDir(models.GpuPath)
 	if err != nil {
 		return err
@@ -284,17 +272,14 @@ func getGPUModel(pciId string) (string, error) {
 		if strings.HasPrefix(str, numberId) {
 			rawResult := strings.Replace(str, numberId, "", 1)
 			if strings.Contains(rawResult, "[") && strings.Contains(rawResult, "]") {
-				indexStart := strings.Index(rawResult, "[")
-				indexEnd := strings.Index(rawResult, "]")
-				return rawResult[indexStart+1 : indexEnd], nil
+				return rawResult[strings.Index(rawResult, "[")+1 : strings.Index(rawResult, "]")], nil
 			}
 			return strings.TrimSpace(rawResult), nil
-		} else if strings.HasPrefix(str, pciId) {
+		}
+		if strings.HasPrefix(str, pciId) {
 			rawResult := strings.Replace(str, pciId, "", 1)
 			if strings.Contains(rawResult, "[") && strings.Contains(rawResult, "]") {
-				indexStart := strings.Index(rawResult, "[")
-				indexEnd := strings.Index(rawResult, "]")
-				return rawResult[indexStart+1 : indexEnd], nil
+				return rawResult[strings.Index(rawResult, "[")+1 : strings.Index(rawResult, "]")], nil
 			}
 			return strings.TrimSpace(rawResult), nil
 		}
